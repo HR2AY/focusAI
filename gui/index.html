@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus OS</title>
+    <style>
+        :root {
+            --bg-glass: rgba(255, 255, 255, 0.65);
+            --color-focus: #34C759;     
+            --color-distract: #FF9500;  
+            --color-danger: #FF3B30;    
+            --color-neutral: #8E8E93;
+            --color-blue: #007AFF;
+            --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --shadow-soft: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background: transparent; 
+            font-family: var(--font-main);
+            overflow: hidden;
+            user-select: none;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #widget-container {
+            width: 280px;
+            height: 260px; /* 固定高度确保动画稳定 */
+            background: var(--bg-glass);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: var(--shadow-soft);
+            padding: 20px;
+            display: flex; flex-direction: column; gap: 12px;
+            transition: all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            overflow: hidden; /* 隐藏升起的设置面板的溢出部分 */
+        }
+
+        #widget-container.mode-distracted {
+            border-color: var(--color-distract);
+            box-shadow: 0 0 30px rgba(255, 149, 0, 0.4);
+            transform: scale(1.02);
+        }
+        #widget-container.mode-focus {
+            opacity: 0.9;
+            transform: scale(0.98);
+        }
+
+        /* --- 动态显现的设置图标 --- */
+        .settings-icon {
+            position: absolute;
+            top: 12px; right: 15px;
+            width: 18px; height: 18px;
+            color: #888;
+            cursor: pointer;
+            opacity: 0; /* 默认隐藏 */
+            transform: rotate(0deg);
+            transition: opacity 0.3s ease, color 0.3s, transform 0.4s;
+            z-index: 10;
+        }
+        /* 鼠标移入组件时显现 */
+        #widget-container:hover .settings-icon { opacity: 1; }
+        /* 鼠标悬停在图标上时变深色且旋转 */
+        .settings-icon:hover { color: #333; transform: rotate(90deg); }
+
+        .header-label {
+            font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+            color: var(--color-neutral); font-weight: 700; margin-bottom: 4px;
+        }
+
+        .goal-input {
+            width: 90%; border: none; background: rgba(0,0,0,0.05);
+            padding: 8px 10px; border-radius: 8px; font-size: 13px; font-weight: 600;
+            outline: none; transition: 0.3s; color: #333;
+        }
+        .goal-input:focus { background: rgba(255,255,255,0.8); }
+
+        .score-section { display: flex; align-items: center; justify-content: space-between; margin-top: 2px; }
+        .score-circle { 
+            width: 60px; height: 60px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; position: relative;
+            background: conic-gradient(var(--color-focus) 0%, #eee 0); 
+            transition: background 1s linear;
+        }
+        .score-circle::before { 
+            content: ''; position: absolute; width: 48px; height: 48px; 
+            background: rgba(255,255,255,0.9); border-radius: 50%; 
+        }
+        .score-text { z-index: 1; font-size: 18px; font-weight: 800; color: #333; }
+
+        .ai-comment-box {
+            flex: 1; margin-left: 12px; font-size: 12px; color: #444; line-height: 1.4;
+            display: flex; align-items: center; min-height: 40px;
+        }
+
+        .btn-group { display: flex; gap: 8px; margin-top: auto; }
+        .btn { 
+            flex: 1; padding: 10px; border-radius: 12px; border: none; 
+            font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; 
+        }
+        
+        .btn-primary { background: var(--color-blue); color: white; position: relative; overflow: hidden; }
+        .btn-primary.running { background: var(--color-blue); }
+        .btn-primary.running:hover { background: var(--color-danger); }
+        .btn-secondary { background: rgba(0,0,0,0.05); color: #333; }
+        .btn-secondary:hover { background: rgba(0,0,0,0.1); }
+
+        /* --- 齿轮呼出的毛玻璃设置面板 --- */
+        .settings-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            z-index: 100;
+            display: flex; flex-direction: column;
+            padding: 5px 24px 24px 24px; box-sizing: border-box;
+            transform: translateY(100%); /* 默认藏在下方 */
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .settings-overlay.active {
+            transform: translateY(0); /* 滑出 */
+            opacity: 1;
+        }
+
+        .settings-title { font-size: 15px; font-weight: 800; color: #333; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-close { background: none; border: none; font-size: 20px; color: #999; cursor: pointer; padding: 0; line-height: 1; }
+        .btn-close:hover { color: #333; }
+
+        .setting-group { margin-bottom: 10px; }
+        .setting-label { font-size: 11px; font-weight: 700; color: #666; margin-bottom: 4px; display: block; }
+        .setting-input, .setting-select {
+            width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 6px; font-size: 12px; background: rgba(255,255,255,0.6); outline: none; transition: 0.3s;
+        }
+        .setting-input:focus, .setting-select:focus { border-color: var(--color-blue); background: #fff; }
+        
+        .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .btn-save-settings { 
+            background: var(--color-focus); color: white; width: 100%; padding: 8px; 
+            border-radius: 10px; border: none; font-weight: bold; cursor: pointer; margin-top: auto; transition: 0.3s;
+        }
+
+        /* Toggle Switch */
+        .switch { position: relative; display: inline-block; width: 34px; height: 18px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--color-focus); }
+        input:checked + .slider:before { transform: translateX(16px); }
+    </style>
+</head>
+<body>
+
+    <div id="widget-container">
+        
+        <svg class="settings-icon" onclick="openSettings()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+
+        <div>
+            <div class="header-label">CURRENT GOAL</div>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="goal-input" class="goal-input" value="高效工作" placeholder="输入目标..." 
+                       onblur="syncGoal()" onkeypress="handleGoalEnter(event)">
+                <button id="btn-update-goal" onclick="submitGoal()" 
+                        style="border:none; border-radius:8px; background:var(--color-blue); color:white; padding:0 14px; cursor:pointer; font-weight:bold; font-size:12px; transition:0.3s;">
+                    SUBMIT
+                </button>
+            </div>
+        </div>
+
+        <div class="header-label" style="margin-top: 4px;">ATTENTION SCORE</div>
+        <div class="score-section">
+            <div class="score-circle" id="score-ring">
+                <span class="score-text" id="score-val">--</span>
+            </div>
+            <div class="ai-comment-box" id="ai-comment">
+                点击右上角齿轮设置API，随后启动监控...
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-primary" id="btn-toggle" onclick="toggleMonitor()" 
+                    onmouseenter="handleBtnHover(true)" onmouseleave="handleBtnHover(false)">
+                ▶ 开始监控
+            </button>
+            <button class="btn btn-secondary" onclick="exportReport()">📊 统计报告</button>
+        </div>
+
+        <div class="settings-overlay" id="settings-panel">
+            <div class="settings-title">
+                系统设置 <button class="btn-close" onclick="closeSettings()">×</button>
+            </div>
+            
+            <div class="setting-group">
+                <label class="setting-label">AI 模型供应商 (Agent 接口)</label>
+                <select class="setting-select" id="cfg-provider" onchange="onProviderChange()">
+                    <option value="dashscope">阿里通义千问 (Qwen-VL)</option>
+                    <option value="doubao">字节豆包 (Doubao-Vision)</option>
+                    <option value="openai">OpenAI 官方 (GPT-4o)</option>
+                    <option value="ollama">本地大模型 (Ollama)</option>
+                </select>
+            </div>
+            
+            <div class="setting-group">
+                <label class="setting-label">API Key (秘钥)</label>
+                <input type="password" class="setting-input" id="cfg-apikey" placeholder="输入当前供应商的 API Key">
+            </div>
+            <div class="setting-group">
+                <label class="setting-label">数据保存基础路径</label>
+                <input type="text" class="setting-input" id="cfg-savedir" placeholder="例如: C:\Users\Desktop\FocusOS_Data">
+            </div>
+            <div class="setting-row">
+                <label class="setting-label" style="margin:0;">截屏分析间隔 (秒)</label>
+                <input type="number" class="setting-input" id="cfg-interval" style="width: 60px;" min="5" max="300">
+            </div>
+
+            <div class="setting-row">
+                <label class="setting-label" style="margin:0;">保存原图到本地硬盘</label>
+                <label class="switch">
+                    <input type="checkbox" id="cfg-saveimg">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <button class="btn-save-settings" onclick="saveSettings()">保存并应用</button>
+        </div>
+
+    </div>
+
+    <script>
+        // --- 核心状态 ---
+        let isRunning = false;
+        let pollInterval = null;
+        let durationInterval = null;
+        let secondsElapsed = 0;
+        let isHoveringBtn = false; 
+        
+        let currentConfig = null; // 存储由后端拉取的设置
+
+        const elBtnToggle = document.getElementById('btn-toggle');
+        const elGoalInput = document.getElementById('goal-input');
+
+        window.addEventListener('pywebviewready', function() {
+            console.log('FocusOS Core Ready');
+        });
+
+        // ==========================================
+        // ⚙️ 设置面板相关逻辑
+        // ==========================================
+        
+        // 1. 打开设置：向 Python 索取 config.json，渲染到前端
+        function openSettings() {
+            if (window.pywebview && window.pywebview.api) {
+                window.pywebview.api.get_settings().then(cfg => {
+                    currentConfig = cfg;
+                    // 填入 UI
+                    document.getElementById('cfg-provider').value = cfg.current_provider;
+                    document.getElementById('cfg-apikey').value = cfg.providers[cfg.current_provider].api_key;
+                    document.getElementById('cfg-savedir').value = cfg.settings.save_dir;
+                    document.getElementById('cfg-interval').value = cfg.settings.interval_seconds;
+                    document.getElementById('cfg-saveimg').checked = cfg.settings.save_images;
+                    
+                    // 弹出面板
+                    document.getElementById('settings-panel').classList.add('active');
+                });
+            }
+        }
+
+        function closeSettings() {
+            document.getElementById('settings-panel').classList.remove('active');
+        }
+
+        // 2. 切换供应商时，自动显示对应的 Key
+        function onProviderChange() {
+            const selected = document.getElementById('cfg-provider').value;
+            if (currentConfig && currentConfig.providers[selected]) {
+                document.getElementById('cfg-apikey').value = currentConfig.providers[selected].api_key;
+            }
+        }
+
+        // 3. 保存设置：组合 JSON，发送给 Python
+        function saveSettings() {
+            if (!currentConfig) return;
+            
+            const provider = document.getElementById('cfg-provider').value;
+            const apiKey = document.getElementById('cfg-apikey').value;
+            const saveDir = document.getElementById('cfg-savedir').value;
+            const interval = parseInt(document.getElementById('cfg-interval').value) || 30;
+            const saveImg = document.getElementById('cfg-saveimg').checked;
+
+            // 更新本地 JS 对象
+            currentConfig.current_provider = provider;
+            currentConfig.providers[provider].api_key = apiKey;
+            currentConfig.settings.save_dir = saveDir;
+            currentConfig.settings.interval_seconds = interval;
+            currentConfig.settings.save_images = saveImg;
+
+            // 传回给 Python 后端写入硬盘
+            if (window.pywebview && window.pywebview.api) {
+                const btn = document.querySelector('.btn-save-settings');
+                btn.innerText = "正在保存...";
+                
+                window.pywebview.api.save_settings(currentConfig).then(res => {
+                    btn.innerText = "✅ " + res.msg;
+                    setTimeout(() => {
+                        btn.innerText = "保存并应用";
+                        closeSettings();
+                    }, 1000);
+                });
+            }
+        }
+
+        // ==========================================
+        // 🎯 目标与监控主逻辑
+        // ==========================================
+
+        function syncGoal() {
+            const newGoal = elGoalInput.value;
+            if (window.pywebview && window.pywebview.api) {
+                window.pywebview.api.update_goal(newGoal);
+            }
+        }
+        
+        function handleGoalEnter(e) {
+            if (e.key === 'Enter') elGoalInput.blur();
+        }
+
+        function submitGoal() {
+            const newGoal = elGoalInput.value;
+            const btn = document.getElementById('btn-update-goal');
+            
+            if (window.pywebview && window.pywebview.api) {
+                window.pywebview.api.update_goal(newGoal).then(res => {
+                    const oldText = btn.innerText;
+                    const oldBg = btn.style.background;
+                    btn.innerText = "✅";
+                    btn.style.background = "var(--color-focus)";
+                    setTimeout(() => {
+                        btn.innerText = "SUBMIT";
+                        btn.style.background = oldBg;
+                    }, 1500);
+                });
+            }
+        }
+
+        function formatTime(totalSeconds) {
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const s = totalSeconds % 60;
+            const pad = num => num.toString().padStart(2, '0');
+            if (h > 0) return `${pad(h)}:${pad(m)}:${pad(s)}`;
+            return `${pad(m)}:${pad(s)}`;
+        }
+
+        function handleBtnHover(isHover) {
+            isHoveringBtn = isHover;
+            updateBtnDisplay();
+        }
+
+        function updateBtnDisplay() {
+            if (!isRunning) {
+                elBtnToggle.innerText = "▶ 开始监控";
+            } else {
+                if (isHoveringBtn) elBtnToggle.innerText = "■ 结束监控";
+                else elBtnToggle.innerText = "⏱️ " + formatTime(secondsElapsed);
+            }
+        }
+
+        function toggleMonitor() {
+            const goal = elGoalInput.value;
+            syncGoal(); 
+
+            if (!isRunning) {
+                window.pywebview.api.start_monitor(goal).then(res => {
+                    if (res.status === "error") {
+                        // 如果后端发现没配 API Key，弹出设置警告
+                        alert(res.msg);
+                        openSettings();
+                        return;
+                    }
+                    isRunning = true;
+                    elBtnToggle.classList.add('running');
+                    
+                    secondsElapsed = 0;
+                    if(durationInterval) clearInterval(durationInterval);
+                    durationInterval = setInterval(() => {
+                        secondsElapsed++;
+                        updateBtnDisplay(); 
+                    }, 1000);
+                    
+                    updateBtnDisplay();
+                    startPolling();
+                });
+            } else {
+                window.pywebview.api.stop_monitor().then(res => {
+                    isRunning = false;
+                    elBtnToggle.classList.remove('running');
+                    
+                    if(durationInterval) clearInterval(durationInterval);
+                    updateBtnDisplay();
+                    stopPolling();
+                });
+            }
+        }
+
+        function startPolling() {
+            pollInterval = setInterval(() => {
+                window.pywebview.api.get_status().then(data => { updateUI(data); });
+            }, 1000);
+        }
+        function stopPolling() { clearInterval(pollInterval); }
+
+        function updateUI(data) {
+            const score = data.score;
+            document.getElementById('score-val').innerText = score;
+            document.getElementById('ai-comment').innerText = data.comment;
+
+            let color = '#34C759'; 
+            if (score < 100) color = '#FF9500'; 
+            if (score < 50) color = '#FF3B30';  
+
+            const percent = Math.min(100, Math.max(0, score / 2));
+            document.getElementById('score-ring').style.background = `conic-gradient(${color} ${percent}%, #eee 0)`;
+
+            const widget = document.getElementById('widget-container');
+            if (score < 80) { 
+                widget.classList.add('mode-distracted');
+                widget.classList.remove('mode-focus');
+            } else {
+                widget.classList.add('mode-focus');
+                widget.classList.remove('mode-distracted');
+            }
+        }
+
+        function exportReport() {
+            window.pywebview.api.generate_report().then(res => { alert(res.msg); });
+        }
+    </script>
+</body>
+</html>
