@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus OS</title>
+    <style>
+        :root {
+            --bg-glass: rgba(255, 255, 255, 0.65);
+            --color-focus: #34C759;     
+            --color-distract: #FF9500;  
+            --color-danger: #FF3B30;    
+            --color-neutral: #8E8E93;
+            --color-blue: #007AFF;
+            --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --shadow-soft: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background: transparent; 
+            font-family: var(--font-main);
+            overflow: hidden;
+            user-select: none;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #widget-container {
+            width: 280px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: var(--shadow-soft);
+            padding: 20px;
+            display: flex; flex-direction: column; gap: 16px;
+            transition: all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+        }
+
+        #widget-container.mode-distracted {
+            border-color: var(--color-distract);
+            box-shadow: 0 0 30px rgba(255, 149, 0, 0.4);
+            transform: scale(1.02);
+        }
+        #widget-container.mode-focus {
+            opacity: 0.9;
+            transform: scale(0.98);
+        }
+
+        .header-label {
+            font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+            color: var(--color-neutral); font-weight: 700; margin-bottom: 4px;
+        }
+
+        .goal-input {
+            width: 90%; border: none; background: rgba(0,0,0,0.05);
+            padding: 8px 10px; border-radius: 8px; font-size: 13px; font-weight: 600;
+            outline: none; transition: 0.3s; color: #333;
+        }
+        .goal-input:focus { background: rgba(255,255,255,0.8); }
+
+        .score-section { display: flex; align-items: center; justify-content: space-between; margin-top: 5px; }
+        .score-circle { 
+            width: 64px; height: 64px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; position: relative;
+            background: conic-gradient(var(--color-focus) 0%, #eee 0); 
+            transition: background 1s linear;
+        }
+        .score-circle::before { 
+            content: ''; position: absolute; width: 52px; height: 52px; 
+            background: rgba(255,255,255,0.9); border-radius: 50%; 
+        }
+        .score-text { z-index: 1; font-size: 20px; font-weight: 800; color: #333; }
+
+        .ai-comment-box {
+            flex: 1; margin-left: 12px; font-size: 13px; color: #444; line-height: 1.4;
+            display: flex; align-items: center; min-height: 40px;
+        }
+
+        .btn-group { display: flex; gap: 8px; margin-top: 8px; }
+        .btn { 
+            flex: 1; padding: 10px; border-radius: 14px; border: none; 
+            font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; 
+        }
+        
+        /* 核心：动态按钮样式 */
+        .btn-primary { 
+            background: var(--color-blue); color: white; 
+            position: relative; overflow: hidden;
+        }
+        /* 运行时保持蓝色，除非 Hover */
+        .btn-primary.running { background: var(--color-blue); }
+        /* 悬停时变红，显示停止提示 */
+        .btn-primary.running:hover { background: var(--color-danger); }
+        
+        .btn-secondary { background: rgba(0,0,0,0.05); color: #333; }
+        .btn-secondary:hover { background: rgba(0,0,0,0.1); }
+
+        .drawer {
+            max-height: 0; overflow: hidden; opacity: 0;
+            transition: all 0.4s ease;
+            background: rgba(255,255,255,0.5); border-radius: 12px; margin-top: 5px;
+        }
+        .drawer.open { max-height: 120px; opacity: 1; padding: 10px; margin-top: 10px;}
+        
+        .toggle-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .toggle-label { font-size: 12px; font-weight: 500; }
+        
+        .switch { position: relative; display: inline-block; width: 36px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--color-focus); }
+        input:checked + .slider:before { transform: translateX(16px); }
+
+    </style>
+</head>
+<body>
+
+    <div id="widget-container">
+        <div>
+        <div class="header-label">CURRENT GOAL</div>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="goal-input" class="goal-input" value="高效工作" placeholder="输入目标...">
+                <button id="btn-update-goal" onclick="submitGoal()" 
+                        style="border:none; border-radius:8px; background:var(--color-blue); color:white; padding:0 14px; cursor:pointer; font-weight:bold; font-size:12px; transition:0.3s;">
+                    SUBMIT
+                </button>
+        </div>
+
+        <div class="header-label" style="margin-top: 10px;">ATTENTION SCORE</div>
+        <div class="score-section">
+            <div class="score-circle" id="score-ring">
+                <span class="score-text" id="score-val">--</span>
+            </div>
+            <div class="ai-comment-box" id="ai-comment">
+                等待启动...
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-primary" id="btn-toggle" onclick="toggleMonitor()" 
+                    onmouseenter="handleBtnHover(true)" onmouseleave="handleBtnHover(false)">
+                ▶ 开始监控
+            </button>
+            <button class="btn btn-secondary" onclick="toggleDrawer()">☕ 放松</button>
+            <button class="btn btn-secondary" onclick="exportReport()">📊 统计</button>
+        </div>
+
+        <div class="drawer" id="relax-drawer">
+            <div class="toggle-row">
+                <span class="toggle-label">🌧️ 白噪音 (雨声)</span>
+                <label class="switch">
+                    <input type="checkbox" onchange="toggleNoise(this)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="toggle-row">
+                <span class="toggle-label">⏰ 专注倒计时 (60s)</span>
+                <label class="switch">
+                    <input type="checkbox" id="timer-switch" onchange="toggleTimer(this)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+    </div>
+
+    <audio id="audio-rain" loop src="https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg"></audio>
+
+    <script>
+        let isRunning = false;
+        let pollInterval = null;
+        let durationInterval = null;
+        let secondsElapsed = 0;
+        let isHoveringBtn = false; // 记录鼠标是否悬停在按钮上
+
+        const elBtnToggle = document.getElementById('btn-toggle');
+        const elGoalInput = document.getElementById('goal-input');
+
+        window.addEventListener('pywebviewready', function() {
+            console.log('FocusOS Core Ready');
+        });
+
+        // --- 目标同步逻辑 ---
+        function syncGoal() {
+            const newGoal = elGoalInput.value;
+            // 无论是否启动，都向后端同步目标
+            if (window.pywebview && window.pywebview.api) {
+                window.pywebview.api.update_goal(newGoal);
+            }
+        }
+        
+        function handleGoalEnter(e) {
+            if (e.key === 'Enter') {
+                elGoalInput.blur(); // 失去焦点会触发 syncGoal
+            }
+        }
+
+        // --- 格式化时间 (mm:ss 或 hh:mm:ss) ---
+        function formatTime(totalSeconds) {
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const s = totalSeconds % 60;
+            const pad = num => num.toString().padStart(2, '0');
+            if (h > 0) return `${pad(h)}:${pad(m)}:${pad(s)}`;
+            return `${pad(m)}:${pad(s)}`;
+        }
+
+        // --- 按钮悬停交互逻辑 ---
+        function handleBtnHover(isHover) {
+            isHoveringBtn = isHover;
+            updateBtnDisplay();
+        }
+
+        function updateBtnDisplay() {
+            if (!isRunning) {
+                elBtnToggle.innerText = "▶ 开始监控";
+            } else {
+                if (isHoveringBtn) {
+                    elBtnToggle.innerText = "■ 结束监控";
+                } else {
+                    elBtnToggle.innerText = "⏱️ " + formatTime(secondsElapsed);
+                }
+            }
+        }
+
+        // --- 监控主流程 ---
+// --- 目标同步逻辑 (点击修改按钮触发) ---
+        function submitGoal() {
+                    const newGoal = document.getElementById('goal-input').value;
+                    const btn = document.getElementById('btn-update-goal');
+                    
+                    if (window.pywebview && window.pywebview.api) {
+                        // 调用后端刚刚新增的 update_goal 接口
+                        window.pywebview.api.update_goal(newGoal).then(res => {
+                            // 给予极其丝滑的 UI 视觉反馈：变绿打勾
+                            const oldText = btn.innerText;
+                            const oldBg = btn.style.background;
+                            
+                            btn.innerText = "✅";
+                            btn.style.background = "var(--color-focus)"; // 变成绿色
+                            
+                            // 1.5秒后恢复原样
+                            setTimeout(() => {
+                                btn.innerText = "SUBMIT";
+                                btn.style.background = oldBg;
+                            }, 1500);
+                        });
+                    }
+                }
+        function toggleMonitor() {
+            const goal = elGoalInput.value;
+            syncGoal(); // 启动前再强制同步一次
+
+            if (!isRunning) {
+                // 启动
+                window.pywebview.api.start_monitor(goal).then(res => {
+                    isRunning = true;
+                    elBtnToggle.classList.add('running');
+                    
+                    // 重置并启动前端计时器
+                    secondsElapsed = 0;
+                    if(durationInterval) clearInterval(durationInterval);
+                    durationInterval = setInterval(() => {
+                        secondsElapsed++;
+                        updateBtnDisplay(); // 每秒更新按钮文字
+                    }, 1000);
+                    
+                    updateBtnDisplay();
+                    startPolling();
+                });
+            } else {
+                // 停止
+                window.pywebview.api.stop_monitor().then(res => {
+                    isRunning = false;
+                    elBtnToggle.classList.remove('running');
+                    
+                    if(durationInterval) clearInterval(durationInterval);
+                    updateBtnDisplay();
+                    stopPolling();
+                });
+            }
+        }
+
+        function startPolling() {
+            pollInterval = setInterval(() => {
+                window.pywebview.api.get_status().then(data => {
+                    updateUI(data);
+                });
+            }, 1000);
+        }
+        function stopPolling() { clearInterval(pollInterval); }
+
+        function updateUI(data) {
+            const score = data.score;
+            document.getElementById('score-val').innerText = score;
+            document.getElementById('ai-comment').innerText = data.comment;
+
+            let color = '#34C759'; 
+            if (score < 100) color = '#FF9500'; 
+            if (score < 50) color = '#FF3B30';  
+
+            const percent = Math.min(100, Math.max(0, score / 2));
+            document.getElementById('score-ring').style.background = `conic-gradient(${color} ${percent}%, #eee 0)`;
+
+            const widget = document.getElementById('widget-container');
+            if (score < 80) { 
+                widget.classList.add('mode-distracted');
+                widget.classList.remove('mode-focus');
+            } else {
+                widget.classList.add('mode-focus');
+                widget.classList.remove('mode-distracted');
+            }
+        }
+
+        function toggleDrawer() { document.getElementById('relax-drawer').classList.toggle('open'); }
+        function toggleNoise(el) { const a = document.getElementById('audio-rain'); el.checked ? a.play() : a.pause(); }
+        
+        function toggleTimer(el) {
+            if(el.checked) {
+                setTimeout(() => {
+                    playBeep();
+                    el.checked = false; 
+                }, 60000); 
+            }
+        }
+        
+        function playBeep() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            osc.connect(ctx.destination);
+            osc.frequency.value = 800;
+            osc.start();
+            osc.stop(ctx.currentTime + 0.5);
+            alert("⏰ 休息时间结束！");
+        }
+
+        function exportReport() {
+            window.pywebview.api.generate_report().then(res => { alert(res.msg); });
+        }
+    </script>
+</body>
+</html>
