@@ -41,7 +41,7 @@ echo [INFO] 正在启动 FocusOS 引擎与本地 API 服务 (端口: 8765)...
 echo [INFO] 提示：你可以最小化此控制台窗口，但请勿关闭。
 echo.
 
-"venv\Scripts\python.exe" agent_server.py
+"venv\Scripts\python.exe" main.py
 
 echo.
 echo [INFO] FocusOS 已退出。
