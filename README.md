@@ -29,7 +29,12 @@
 ### 🖥️ 沉浸式悬浮 UI (Glassmorphism Widget)
 - 采用 HTML/CSS/JS + `pywebview` 打造的绝美毛玻璃悬浮窗。
 - 隐藏式交互设计，支持专注度实时环形图反馈和 AI 导师毒舌/鼓励点评。
-
+---
+<p align="center">
+    <img src="https://github.com/HR2AY/diary/blob/main/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202026-03-12%20181129.jpg?raw=true" width="32%">
+    <img src="https://github.com/HR2AY/diary/blob/main/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202026-03-12%20181238.jpg?raw=true" width="32%">
+    <img src="https://github.com/HR2AY/diary/blob/main/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202026-03-12%20181157.jpg?raw=true" width="32%">
+</p>
 ---
 
 ## 🚀 快速开始 (Quick Start)
