@@ -71,7 +71,7 @@ python main.py
 
 让你的 AI 助手（如 OpenClaw, AutoGPT）接管 FocusAI，只需要两步：
 
-1. **导入技能提示词**: 将项目根目录下的 `Skill_FocusAI_Context.md` 复制并添加到你的 Agent System Prompt 中。
+1. **导入技能提示词**: 将项目SKILL目录下的 `Skill.md` 复制并添加到你的 Agent System Prompt（或者openclaw的SKILL文件夹）中。
 2. **通过 API 交互**:
 FocusAI 启动后，Agent 即可调用以下本地接口：
 
