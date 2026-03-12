@@ -15,7 +15,6 @@
 
 **FocusAI** 不仅仅是一个桌面防分心计时器，它是一个 **为 AI Agent（如 OpenClaw）设计的“全天候视觉记忆中枢”**。它在后台默默记录你的屏幕活动，使用先进的视觉大模型（VLM）为你打分，并提供本地 API 让你的 AI 助手随时“看见”并理解你的工作状态。
 
-![FocusAI Screenshot](https://github.com/HR2AY/diary/blob/main/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202026-03-10%20231518.png?raw=true)
 ## ✨ 核心特性 (Key Features)
 
 ### 🤖 面向智能体 (Agent-Native)
@@ -39,7 +38,7 @@
     <img src="https://github.com/HR2AY/diary/blob/main/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202026-03-12%20181238.jpg?raw=true" width="32%">
     <img src="https://github.com/HR2AY/diary/blob/main/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202026-03-12%20181157.jpg?raw=true" width="32%">
 </p>
----
+
 
 ## 🚀 快速开始 (Quick Start)
 
@@ -71,7 +70,9 @@ python main.py
 
 ---
 
-## 🧩 为 AI Agent 赋能 (Integration for Agents)
+## 📶 为 AI Agent 赋能 (Integration for Agents)
+
+
 
 让你的 AI 助手（如 OpenClaw, AutoGPT）接管 FocusAI，只需要两步：
 
@@ -89,6 +90,34 @@ FocusAI 启动后，Agent 即可调用以下本地接口：
 
 *详细 API 规范请参考 `API_Integration.md`。*
 
+---
+
+## 👁️ Agent 专属上下文感知 (Context Awareness)
+
+FocusAI 彻底解决了 Agent 无法得知“我不在时发生了什么”的问题。通过读取 FocusAI 自动生成的结构化日志，Clawbot 等 Agent 可以瞬间补全用户的全天活动上下文，从而提供极具针对性的建议。
+
+<div align="center">
+  <img src="https://github.com/HR2AY/diary/blob/main/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202026-03-12%20211802.jpg" width="50%">
+</div>
+
+---
+
+## 🧩 高度 DIY：为 Vibe Coding 而生
+
+FocusAI 的代码架构采用了极致的“解耦”设计，没有任何冗余的外部框架绑定，非常适合使用 Cursor、Claw 或 Windsurf 进行 **Vibe Coding**（即通过自然语言交互轻松重构逻辑）。
+
+### 为什么它极易改造？
+* **模块化三层架构**：
+    * `FocusEngine` (核心大脑)：纯 Python 逻辑，截图、压缩、AI 调用。
+    * `FocusApi` (GUI 桥接器)：前端数据交换。
+    * `AgentAPIHandler` (标准 API 接口)：供外部程序调用的 RESTful 服务。
+* **代码透明度高**：主逻辑清晰，不依赖复杂的第三方 GUI 库，HTML/CSS 部分采用原生写法，毛玻璃效果和交互动画一目了然。
+* **开放式扩展**：
+    * 想加个“分心时自动播放警报”？在 `_worker_loop` 里加 3 行代码即可。
+    * 想把分数实时同步到 Notion 或飞书？只需在 `history_data` 记录处挂载一个 Webhook。
+    * 想接入本地摄像头进行疲劳监测？核心引擎已为你留好了多模态输入的接口位。
+
+> **"如果你能用嘴描述出来，你就能用 AI 将 FocusAI 改造成你想要的任何样子。"**
 ---
 
 ## ⚙️ 配置文件 (config.json)
@@ -117,6 +146,7 @@ FocusAI 启动后，Agent 即可调用以下本地接口：
 }
 
 ```
+---
 
 ## 💸 极低运行成本：AI 助理的“月租”仅需一杯奶茶
 
@@ -135,7 +165,6 @@ FocusAI 在设计之初就将“高效”与“省钱”放在首位。通过精
 | **采样频率** | 30 秒 / 次 | 默认监控间隔，兼顾精度与成本 |
 | **日运行量** | 720 次请求 / 天 | 120次/小时 × 6小时 |
 
----
 
 ### 💰 费用清单 (RMB)
 
@@ -150,19 +179,30 @@ FocusAI 在设计之初就将“高效”与“省钱”放在首位。通过精
 > 1. **延长间隔**：将截图间隔调整为 60s，成本直接**降低 50%**。
 > 2. **本地模式**：配合 Ollama 使用本地视觉模型（如 Llava），运行成本为 **0**。
 
----
 
 ### 🔍 为什么这么省？
 1. **输入优化**：图片在上传前经过智能压缩与尺寸调整，最大程度减少 Base64 编码体积。
 2. **零废话输出**：AI 仅输出结构化评分与简短评价，平均每次输出仅消耗约 40 Tokens。
 
----
 
 ## 🛡️ 隐私与数据安全
 
 * **数据完全本地化**：截图和行为日志默认全部保存在你本地的 `FocusOS_Data` 文件夹中。
 * **内存级传输**：程序在向云端 VLM 传输图像时，使用纯内存 Base64 编码，绝不产生多余的临时文件切片。
 * **支持全离线模式**：只需在设置中将 Provider 切换为 `ollama`，即可实现 100% 断网的本地监控（需预先配置好本地大模型）。
+  
+---
+
+## clawhub安装指南
+* **skill搜索focus-ai即可自动安装，** ***注意，若已安装 FocusAI，在配置skill时告诉clawbot本地路径***
+![FocusAI Screenshot](https://github.com/HR2AY/diary/blob/main/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202026-03-10%20231518.png?raw=true)
+
+---
+##  联系方式
+本项目为单人vibecoding开发而成，bug反馈/功能建议/交流合作请添加微信号：Hrzay050204
+<div align="center">
+  <img src="https://github.com/HR2AY/diary/blob/main/default.jpg" width="30%">
+</div>
 
 ## 📄 License
 
