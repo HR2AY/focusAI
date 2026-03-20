@@ -10,7 +10,7 @@
 <br>
 
 <div align="center">
-  <img src="[https://github.com/HR2AY/diary/blob/main/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202026-03-12%20203911-realesrgan-realcugan_conservative.png](https://github.com/HR2AY/diary/blob/main/ENGINE.png)" width="40%">
+  <img src="[https://github.com/HR2AY/diary/blob/main/ENGINE.png]" width="70%">
 </div>
 
 **FocusAI** 不仅仅是一个桌面防分心计时器，它是一个 **为 AI Agent（如 OpenClaw）设计的“全天候视觉记忆中枢”**。它在后台默默记录你的屏幕活动，使用先进的视觉大模型（VLM）为你打分，并提供本地 API 让你的 AI 助手随时“看见”并理解你的工作状态。
