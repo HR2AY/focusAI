@@ -327,17 +327,26 @@ def run_agent_server(engine: FocusEngine, port=8765):
 
 # =================== 主程序启动 ===================
 if __name__ == '__main__':
+    # 支持 --headless 参数：仅启动后台 HTTP 服务，不打开 GUI 窗口
+    headless = '--headless' in sys.argv
+
     core_engine = FocusEngine()
-    gui_api = FocusApi(core_engine)
-    
-    # 启动供 Agent 调用的后台本地服务器线程 (端口 8765)
-    api_thread = threading.Thread(target=run_agent_server, args=(core_engine, 8765))
-    api_thread.daemon = True
-    api_thread.start()
-    
-    # 启动图形界面
-    window = webview.create_window(
-        'Focus OS', url=resource_path('gui/index.html'), js_api=gui_api,
-        width=340, height=365, resizable=False, frameless=True, easy_drag=True, on_top=True             
-    )
-    webview.start(debug=False)#默认关闭，可选打开以便debug
+
+    if headless:
+        # 无界面模式：HTTP 服务在主线程运行（阻塞），供 AI Agent 调用
+        print("[Headless 模式] GUI 已跳过，仅启动 Agent API 服务")
+        run_agent_server(core_engine, 8765)
+    else:
+        gui_api = FocusApi(core_engine)
+
+        # 启动供 Agent 调用的后台本地服务器线程 (端口 8765)
+        api_thread = threading.Thread(target=run_agent_server, args=(core_engine, 8765))
+        api_thread.daemon = True
+        api_thread.start()
+
+        # 启动图形界面
+        window = webview.create_window(
+            'Focus OS', url=resource_path('gui/index.html'), js_api=gui_api,
+            width=340, height=365, resizable=False, frameless=True, easy_drag=True, on_top=True
+        )
+        webview.start(debug=False)  # 默认关闭，可选打开以便debug
