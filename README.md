@@ -10,7 +10,7 @@
 <br>
 
 <div align="center">
-  <img src="[https://github.com/HR2AY/diary/blob/main/ENGINE.png]" width="70%">
+  <img src="https://github.com/HR2AY/diary/blob/main/ENGINE.png" width="70%">
 </div>
 
 **FocusAI** 不仅仅是一个桌面防分心计时器，它是一个 **为 AI Agent（如 OpenClaw）设计的“全天候视觉记忆中枢”**。它在后台默默记录你的屏幕活动，使用先进的视觉大模型（VLM）为你打分，并提供本地 API 让你的 AI 助手随时“看见”并理解你的工作状态。
@@ -47,8 +47,9 @@
 
 1. 克隆仓库：
    ```bash
-   git clone [https://github.com/HR2AY/focusAI.git](https://github.com/HR2AY/focusAI.git)
+   git clone https://github.com/HR2AY/focusAI.git
    cd focusAI
+   ```
 2. 双击运行 `start.bat`。
 3. 点击悬浮窗右上角的 **⚙️ 齿轮图标**，选择你的大模型供应商并填入 API Key。
 4. 输入你的当前目标（如“写周报”），点击“开始监控”。
@@ -130,7 +131,7 @@ FocusAI 的代码架构采用了极致的“解耦”设计，没有任何冗余
     "providers": {
         "dashscope": {
             "name": "阿里通义千问",
-            "base_url": "[https://dashscope.aliyuncs.com/compatible-mode/v1](https://dashscope.aliyuncs.com/compatible-mode/v1)",
+            "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
             "model_name": "qwen-vl-plus",
             "api_key": "sk-your-key-here"
         },
@@ -206,6 +207,4 @@ FocusAI 在设计之初就将“高效”与“省钱”放在首位。通过精
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](https://www.google.com/search?q=LICENSE) file for details.
-
-```
+This project is licensed under the MIT License - see the LICENSE file for details.
