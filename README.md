@@ -1,4 +1,4 @@
-# 🎯 FocusAI: Agent-Native Visual Context Engine
+# 🎯 FocusEngine: Agent-Native Visual Context Engine
 
 <div align="center">
   <img src="https://img.shields.io/badge/Python-3.8+-blue.svg" alt="Python Version">
@@ -13,7 +13,7 @@
   <img src="https://github.com/HR2AY/diary/blob/main/ENGINE.png" width="70%">
 </div>
 
-**FocusAI** 不仅仅是一个桌面防分心计时器，它是一个 **为 AI Agent（如 OpenClaw）设计的“全天候视觉记忆中枢”**。它在后台默默记录你的屏幕活动，使用先进的视觉大模型（VLM）为你打分，并提供本地 API 让你的 AI 助手随时“看见”并理解你的工作状态。
+**FocusEngine** 不仅仅是一个桌面防分心计时器，它是一个 **为 AI Agent（如 OpenClaw）设计的“全天候视觉记忆中枢”**。它在后台默默记录你的屏幕活动，使用先进的视觉大模型（VLM）为你打分，并提供本地 API 让你的 AI 助手随时“看见”并理解你的工作状态。
 
 ## ✨ 核心特性 (Key Features)
 
