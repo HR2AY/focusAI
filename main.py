@@ -11,7 +11,7 @@ import webview
 from openai import OpenAI
 from datetime import datetime
 from PIL import Image, ImageGrab
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
 from urllib.parse import urlparse
 
 # ================= 资源路径处理 =================
@@ -373,7 +373,7 @@ class AgentAPIHandler(BaseHTTPRequestHandler):
 
 def run_agent_server(engine: FocusEngine, port=8765):
     AgentAPIHandler.engine = engine
-    server = HTTPServer(('127.0.0.1', port), AgentAPIHandler)
+    server = ThreadingHTTPServer(('127.0.0.1', port), AgentAPIHandler)
     print(f"\n[🚀 Agent API 就绪] OpenClaw 可通过 http://127.0.0.1:{port}/api/* 进行调用\n")
     server.serve_forever()
 
