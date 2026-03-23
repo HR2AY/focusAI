@@ -112,6 +112,7 @@ class FocusEngine:
         self.user_goal = "高效工作"
         self.current_score = 100
         self.ai_comment = "Focus OS 已就绪"
+        self.current_context = ""
         self.history_data = []
         self._monitor_thread = None
 
@@ -156,6 +157,23 @@ class FocusEngine:
             writer.writerows(self.history_data)
         
         return {"msg": f"报表已保存至: {csv_path}", "path": csv_path}
+
+    def _broadcast_update(self):
+        """向所有 SSE 客户端推送当前状态"""
+        data = {
+            "score": self.current_score,
+            "comment": self.ai_comment,
+            "context": self.current_context,
+            "timestamp": time.time()
+        }
+        msg = f"data: {json.dumps(data, ensure_ascii=False)}\n\n".encode('utf-8')
+        with AgentAPIHandler.sse_lock:
+            for client in AgentAPIHandler.sse_clients[:]:
+                try:
+                    client.wfile.write(msg)
+                    client.wfile.flush()
+                except:
+                    AgentAPIHandler.sse_clients.remove(client)
 
     def _worker_loop(self):
         while self.is_running:
@@ -218,6 +236,7 @@ class FocusEngine:
                 
                 self.current_score = max(0, min(200, self.current_score + data["score_change"]))
                 self.ai_comment = data["comment"]
+                self.current_context = data["context"]
 
                 self.history_data.append({
                     "time": timestamp_str,
@@ -227,7 +246,9 @@ class FocusEngine:
                     "comment": data["comment"],
                     "change": data["score_change"]
                 })
-                
+
+                self._broadcast_update()
+
             except Exception as e:
                 print(f"Loop Error: {e}")
                 self.ai_comment = f"API 连接异常，请检查网络或 Key..."
@@ -276,6 +297,8 @@ class FocusApi:
 # ================= 核心组件 3：Agent API 服务 (纯本地 HTTP) =================
 class AgentAPIHandler(BaseHTTPRequestHandler):
     engine: FocusEngine = None  # 静态挂载核心大脑
+    sse_clients = []
+    sse_lock = threading.Lock()
 
     def _send_response(self, data, status=200):
         self.send_response(status)
@@ -293,6 +316,23 @@ class AgentAPIHandler(BaseHTTPRequestHandler):
             self._send_response(self.engine.get_status())
         elif parsed.path == '/api/history':
             self._send_response({"history": self.engine.history_data})
+        elif parsed.path == '/api/focus/changes':
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/event-stream')
+            self.send_header('Cache-Control', 'no-cache')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            with AgentAPIHandler.sse_lock:
+                AgentAPIHandler.sse_clients.append(self)
+            try:
+                while True:
+                    time.sleep(0.5)
+            except:
+                pass
+            finally:
+                with AgentAPIHandler.sse_lock:
+                    if self in AgentAPIHandler.sse_clients:
+                        AgentAPIHandler.sse_clients.remove(self)
         else:
             self._send_response({"error": "Not Found"}, 404)
 
