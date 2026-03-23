@@ -136,7 +136,8 @@ class FocusEngine:
             "score": self.current_score,
             "comment": self.ai_comment,
             "running": self.is_running,
-            "current_goal": self.user_goal
+            "current_goal": self.user_goal,
+            "change": 0
         }
 
     def generate_report(self):
@@ -158,12 +159,15 @@ class FocusEngine:
         
         return {"msg": f"报表已保存至: {csv_path}", "path": csv_path}
 
-    def _broadcast_update(self):
+    def _broadcast_update(self, score_change=0):
         """向所有 SSE 客户端推送当前状态"""
         data = {
             "score": self.current_score,
             "comment": self.ai_comment,
             "context": self.current_context,
+            "change": score_change,
+            "running": self.is_running,
+            "current_goal": self.user_goal,
             "timestamp": time.time()
         }
         msg = f"data: {json.dumps(data, ensure_ascii=False)}\n\n".encode('utf-8')
@@ -247,7 +251,7 @@ class FocusEngine:
                     "change": data["score_change"]
                 })
 
-                self._broadcast_update()
+                self._broadcast_update(data["score_change"])
 
             except Exception as e:
                 print(f"Loop Error: {e}")
@@ -310,6 +314,13 @@ class AgentAPIHandler(BaseHTTPRequestHandler):
     # 静默日志，防止控制台被刷屏
     def log_message(self, format, *args): pass 
 
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Accept')
+        self.end_headers()
+
     def do_GET(self):
         parsed = urlparse(self.path)
         if parsed.path == '/api/focus/score':
@@ -345,9 +356,11 @@ class AgentAPIHandler(BaseHTTPRequestHandler):
         if parsed.path == '/api/start':
             goal = data.get('goal', self.engine.user_goal)
             self.engine.start(goal)
+            self.engine._broadcast_update()
             self._send_response({"status": "started", "goal": self.engine.user_goal})
         elif parsed.path == '/api/stop':
             self.engine.stop()
+            self.engine._broadcast_update()
             self._send_response({"status": "stopped"})
         elif parsed.path == '/api/goal':
             self.engine.update_goal(data.get('goal', ''))
