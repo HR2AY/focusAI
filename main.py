@@ -294,6 +294,12 @@ class FocusApi:
     def generate_report(self):
         return self.engine.generate_report()
 
+    def close_app(self):
+        webview.windows[0].destroy()
+
+    def minimize_app(self):
+        webview.windows[0].minimize()
+
 # ================= 核心组件 3：Agent API 服务 (纯本地 HTTP) =================
 class AgentAPIHandler(BaseHTTPRequestHandler):
     engine: FocusEngine = None  # 静态挂载核心大脑
