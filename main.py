@@ -213,7 +213,7 @@ class FocusEngine:
                 prompt = (
                     f"用户目标:【{self.user_goal}】; 用户当前总分：【{self.current_score}】\n"
                     "请执行以下任务：\n"
-                    "1. 识别窗口: 忽略任务栏，概括屏幕上的活动，内容不超过30字\n"
+                    "1. 识别窗口: 忽略任务栏，如果有FocusEngine窗口也忽略，概括屏幕上的活动，内容不超过30字\n"
                     "2. 专注力打分: 严格参照用户目标，强相关+1分，偏离-1分，完全分心-2分。除非与目标强相关，否则一律扣分。\n"
                     "3. 精神导师评价: 结合当前总分和状态，对用户说一句简短的话，鼓励或者提醒。\n"
                     "专注力打分只能是 1 或 -1 或 -2，绝对不能输出用户的总分！\n"
@@ -297,6 +297,12 @@ class FocusApi:
 
     def generate_report(self):
         return self.engine.generate_report()
+
+    def close_app(self):
+        webview.windows[0].destroy()
+
+    def minimize_app(self):
+        webview.windows[0].minimize()
 
 # ================= 核心组件 3：Agent API 服务 (纯本地 HTTP) =================
 class AgentAPIHandler(BaseHTTPRequestHandler):
