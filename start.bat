@@ -1,4 +1,6 @@
 @echo off
+:: 切换到脚本所在目录，确保相对路径正确（双击运行时关键）
+cd /d "%~dp0"
 :: 设置控制台为 UTF-8 编码
 chcp 65001 >nul
 title FocusEngine 引擎启动器
@@ -27,6 +29,12 @@ echo [INFO] 检测到 Python，准备检查虚拟环境...
 if exist "venv\Scripts\python.exe" goto INSTALL_DEPS
 echo [INFO] 首次运行，正在创建独立的虚拟环境 (venv)...
 py -m venv venv
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo [错误] 虚拟环境创建失败！请确认 Python 安装完整。
+    pause
+    exit /b
+)
 
 :INSTALL_DEPS
 :: 3. 直接使用虚拟环境的 pip 安装依赖 (绝对路径调用，最稳妥)
