@@ -1,10 +1,10 @@
 @echo off
 :: 设置控制台为 UTF-8 编码
 chcp 65001 >nul
-title FocusOS 引擎启动器
+title FocusEngine 引擎启动器
 
 echo ==========================================
-echo        FocusOS 启动程序 (Agent-Ready)
+echo      FocusEngine 启动程序 (Agent-Ready)
 echo ==========================================
 echo.
 
@@ -37,12 +37,12 @@ echo [INFO] 正在检查并安装核心运行库...
 :: 4. 启动程序
 echo.
 echo [INFO] 环境准备就绪！
-echo [INFO] 正在启动 FocusOS 引擎与本地 API 服务 (端口: 8765)...
+echo [INFO] 正在启动 FocusEngine 引擎与本地 API 服务 (端口: 8765)...
 echo [INFO] 提示：你可以最小化此控制台窗口，但请勿关闭。
 echo.
 
 "venv\Scripts\python.exe" main.py
 
 echo.
-echo [INFO] FocusOS 已退出。
+echo [INFO] FocusEngine 已退出。
 pause
