@@ -4,44 +4,58 @@ chcp 65001 >nul
 title FocusEngine
 
 echo ==========================================
-echo      FocusEngine 启动程序 (Agent-Ready)
+echo   FocusEngine Launcher (Agent-Ready)
 echo ==========================================
 echo.
 
-:: ── 1. 检测 Python ──────────────────────────
-echo [1/3] 检测 Python 环境...
+:: --- Step 1: Detect Python ---
+echo [1/3] Checking Python...
 py --version >nul 2>&1
-if %ERRORLEVEL% EQU 0 ( set PY=py & goto :venv )
+if %ERRORLEVEL% EQU 0 ( set PY=py & goto venv )
 python --version >nul 2>&1
-if %ERRORLEVEL% EQU 0 ( set PY=python & goto :venv )
+if %ERRORLEVEL% EQU 0 ( set PY=python & goto venv )
 
-echo [错误] 未找到 Python，请安装 3.8+ 并勾选 "Add to PATH"
-pause & exit /b 1
+echo.
+echo [ERROR] Python not found.
+echo Please install Python 3.8+ from https://python.org
+echo and check "Add python.exe to PATH" during setup.
+pause
+exit /b 1
 
-:: ── 2. 虚拟环境 ─────────────────────────────
+:: --- Step 2: Virtual environment ---
 :venv
-echo [2/3] 准备虚拟环境...
+echo [2/3] Preparing virtual environment...
 if not exist "venv\Scripts\python.exe" (
     %PY% -m venv venv
-    if %ERRORLEVEL% NEQ 0 ( echo [错误] venv 创建失败 & pause & exit /b 1 )
+    if %ERRORLEVEL% NEQ 0 (
+        echo [ERROR] Failed to create venv. Check your Python installation.
+        pause
+        exit /b 1
+    )
 )
 
-:: ── 3. 依赖 ─────────────────────────────────
-echo [3/3] 安装 / 更新依赖...
+:: --- Step 3: Install / update dependencies ---
+:deps
+echo [3/3] Installing dependencies...
 "venv\Scripts\python.exe" -m pip install -q --upgrade -i https://pypi.tuna.tsinghua.edu.cn/simple openai pillow pywebview
 if %ERRORLEVEL% NEQ 0 (
-    echo [提示] 镜像源失败，切换官方源重试...
+    echo [WARN] Mirror failed, retrying with official PyPI...
     "venv\Scripts\python.exe" -m pip install -q --upgrade openai pillow pywebview
-    if %ERRORLEVEL% NEQ 0 ( echo [错误] 依赖安装失败 & pause & exit /b 1 )
+    if %ERRORLEVEL% NEQ 0 (
+        echo [ERROR] Dependency installation failed.
+        pause
+        exit /b 1
+    )
 )
 
-:: ── 启动 ────────────────────────────────────
+:: --- Launch ---
+:start
 echo.
-echo [OK] 正在启动 FocusEngine (API 端口: 8765)...
-echo      可最小化此窗口，但请勿关闭。
+echo [OK] Starting FocusEngine (API port: 8765)...
+echo      You can minimize this window, but do NOT close it.
 echo.
 "venv\Scripts\python.exe" main.py %*
 
 echo.
-echo FocusEngine 已退出。
+echo FocusEngine exited.
 pause
